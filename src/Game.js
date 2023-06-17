@@ -104,6 +104,15 @@ class Game {
     return false
   }
 
+    // send a message to everyone but the player who is the source of the event
+  broadcastNewPlayer(source, message) {
+    for (const player of this.snakes) {
+      if (player.client !== source) {
+        player.client.write(message);
+      }
+    }
+  }
+
   newPlayer(client) {
     const coords = this.safeSnakeStartingCoords()
     if (coords) {
@@ -116,6 +125,9 @@ class Game {
         this.snakeMoved.bind(this)
       )
       this.snakes.push(snake)
+
+      //send a message to the other players that a new player has connected
+      this.broadcastNewPlayer(client, `A new player has joined!\nTotal players: ${this.snakes.length}\n`);
     } else {
       try {
         client.write("No space for you, try again soon!\n", () => client.end())
@@ -131,7 +143,12 @@ class Game {
 
   playerLeft(client) {
     const index = this.snakes.findIndex(s => s.client === client)
-    if (index >= 0) this.removeSnake(this.snakes[index], index)
+    if (index >= 0) {
+      //send a message to the other players that a new player has connected
+      this.broadcastNewPlayer(client, `${this.snakes[index].name ? this.snakes[index].name : "A player"} has left the game! Loosers...`);
+
+      this.removeSnake(this.snakes[index], index);
+    }
   }
 
   checkDotHits(position, snake) {
